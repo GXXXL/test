@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="ConvertingJSONtoXMLUsingPayloadFctory" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property name="message" value="ConvertingJSONtoXMLUsingPayload.   start``````"/>
+            </log>
+            <payloadFactory media-type="xml">
+                <format>
+                    <student xmlns="">
+                        <s_name>$1</s_name>
+                        <s_sex>$2</s_sex>
+                        <s_age>$3</s_age>
+                    </student>
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.name"/>
+                    <arg evaluator="json" expression="$.sex"/>
+                    <arg evaluator="json" expression="$.age"/>
+                </args>
+            </payloadFactory>
+            <log level="full"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </target>
+</proxy>

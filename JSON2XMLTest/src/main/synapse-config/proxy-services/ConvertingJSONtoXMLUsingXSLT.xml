@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="ConvertingJSONtoXMLUsingXSLT" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property expression="json-eval($.name)" name="msg"/>
+            </log>
+            <xslt key="JSON2XML"/>
+            <property name="messageType" scope="axis2" type="STRING" value="text/xml"/>
+            <log level="full"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence/>
+    </target>
+</proxy>
