@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="SFDC2UDP_OBJECTS_SYNC" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property name="msg" value="SFDC2UDP_OBJECTS_SYNC: start ..."/>
+            </log>
+            <property expression="$url:region" name="path.var.region" scope="default" type="STRING"/>
+            <property expression="$url:object" name="path.var.object" scope="default" type="STRING"/>
+            <property expression="concat($ctx:path.var.region,'_', $ctx:path.var.object)" name="proxy.var.moduleName" scope="default" type="STRING"/>
+            <property expression="concat('SFDC2UDP_OBJECTS_SYNC[',$ctx:proxy.var.moduleName,']: ')" name="proxy.var.proxyLogPrefix" scope="default" type="STRING"/>
+            <log level="custom">
+                <property expression="concat('SFDC2UDP_OBJECTS_SYNC: Sending message to ',$ctx:proxy.var.moduleName)" name="msg"/>
+            </log>
+            <property expression="concat('gov:/repository/services/SFDC2UDP_OBJECTS_SYNC/variables/',$ctx:path.var.region,'/',$ctx:proxy.var.moduleName)" name="module_address" scope="default" type="STRING"/>
+            <property expression="concat($ctx:module_address, '/query.global.latestdate.txt')" name="timestamp_address" scope="default" type="STRING"/>
+            <property expression="concat($ctx:module_address,'/query.global.info.txt')" name="info_address" scope="default" type="STRING"/>
+            <property expression="concat($ctx:module_address,'/queryLocator.txt')" name="queryLocator_address" scope="default" type="STRING"/>
+            <property expression="get-property('registry', $ctx:timestamp_address)" name="query.global.latestdate" scope="default" type="STRING"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,' lasttimestamp = ', $ctx:query.global.latestdate)" name="msg"/>
+            </log>
+            <property expression="get-property('registry', $ctx:info_address)" name="global.info" scope="default" type="STRING"/>
+            <filter regex="true" source="$ctx:global.info = ''">
+                <then>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'global parameter is empty.')" name="msg"/>
+                    </log>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <script language="js"><![CDATA[importPackage(Packages.org.apache.synapse.config);
+             
+            
+             var data = mc.getProperty("global.info");
+             var data_string = data.toString();
+             var obj = eval('(' + data_string + ')');
+             
+             var object = obj.object;
+             var region = obj.region;
+             var fileName = obj.fileName;
+             var path = obj.path;
+             var batchCount = obj.batchCount; 
+             var batch_no_position = obj.batch_no_position;
+             var null_position = obj.null_position;
+             var keepLastModifiedDate = obj.keepLastModifiedDate;
+             var sfdc_user_name = obj.sfdc_user_name;
+             var sfdc_user_env = obj.sfdc_user_env;
+             var sql = obj.sql;
+             var sqlfilter = obj.sqlfilter;
+             var udp_user = obj.udp_user;
+             
+             mc.setProperty("uri.var.object", object);
+             mc.setProperty("uri.var.region", region);
+             mc.setProperty("uri.var.file_name", fileName);
+             mc.setProperty("uri.var.path", path);
+             mc.setProperty("uri.var.batch_count", batchCount);
+             mc.setProperty("sfdc.var.sfdc_user_name", sfdc_user_name);
+             mc.setProperty("sfdc.var.sfdc_user_env", sfdc_user_env);
+             mc.setProperty("transfrom.var.batch_no_position", batch_no_position);
+             mc.setProperty("transfrom.var.null_position", null_position);
+             mc.setProperty("transfrom.var.keepLastModifiedDate", keepLastModifiedDate);
+             mc.setProperty("soql.var.basic", sql);
+             mc.setProperty("soql.var.sqlfilter",sqlfilter?sqlfilter:"");
+             mc.setProperty("uri.var.udp_user",udp_user);]]></script>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,$ctx:global.info)" name="msg"/>
+            </log>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' Start to call hadoop API create file ')" name="msg"/>
+            </log>
+            <property name="FORCE_HTTP_1.1" scope="axis2" type="STRING" value="true"/>
+            <property expression="get-property('SYSTEM_DATE','yyyyMMddHHmmss')" name="uri.var.batch_number" scope="default" type="STRING"/>
+            <call>
+                <endpoint key="EX_LUDP_NAMENODE_SFDC_Pipeline_Cache"/>
+            </call>
+            <filter regex="true" source="string($axis2:HTTP_SC)!=307">
+                <then>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'Failed to invoke the hadoop API .')" name="msg"/>
+                    </log>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,'Received response from hadoop API...')" name="msg"/>
+            </log>
+            <property expression="$trp:Location" name="uri.var.newlocation" scope="default" type="STRING"/>
+            <log level="custom">
+                <property expression="$ctx:uri.var.newlocation" name="msg: before uri.var.newlocation"/>
+            </log>
+            <property expression="replace(replace($ctx:uri.var.newlocation,'//node','//10.120.193.'),'.it.leap.com','')" name="uri.var.newlocation" scope="default" type="STRING"/>
+            <log level="custom">
+                <property expression="$ctx:uri.var.newlocation" name="msg: uri.var.newlocation"/>
+            </log>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,' new location = ',$ctx:uri.var.newlocation)" name="msg"/>
+            </log>
+            <sequence key="SQ_COMMON_REQUEST"/>
+            <property name="FORCE_POST_PUT_NOBODY" scope="axis2" type="BOOLEAN" value="true"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, '  using account ',$ctx:sfdc.var.sfdc_user_name,':',$ctx:sfdc.var.sfdc_user_env)" name="msg"/>
+            </log>
+            <call-template target="SFDC_SOAP_LOGIN2">
+                <with-param name="username" value="{$ctx:sfdc.var.sfdc_user_name}"/>
+                <with-param name="environment" value="{$ctx:sfdc.var.sfdc_user_env}"/>
+            </call-template>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' Session ID = ',$ctx:sfdc.var.sessionid)" name="msg"/>
+            </log>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' instance = ',$ctx:sfdc.var.instance_id)" name="msg"/>
+            </log>
+            <property expression="get-property('registry',$ctx:queryLocator_address)" name="sfdc.var.currentQueryLocator" scope="default" type="STRING"/>
+            <filter regex="true" source="$ctx:sfdc.var.currentQueryLocator ='null' or $ctx:sfdc.var.currentQueryLocator =''">
+                <then>
+                    <call-template target="SFDC_SOAP_EXE_QUERY">
+                        <with-param name="proxy.var.proxyLogPrefix" value="{$ctx:proxy.var.proxyLogPrefix}"/>
+                        <with-param name="sfdc.var.queryLocator" value="null"/>
+                        <with-param name="sfdc.var.sessionId" value="{$ctx:sfdc.var.sessionid}"/>
+                        <with-param name="sfdc.var.instanceId" value="{$ctx:sfdc.var.instance_id}"/>
+                        <with-param name="sfdc.var.batchSize" value="{$ctx:uri.var.batch_count}"/>
+                        <with-param name="sfdc.var.SOQL" value="{concat('select MAX(LastModifiedDate) from ',$ctx:path.var.object)}"/>
+                        <with-param name="sfdc.var.SFDCEndpoint" value="EX_SFDC_SOAP_QUERY"/>
+                    </call-template>
+                    <filter regex="true" source="string($axis2:HTTP_SC)!=200">
+                        <then>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="203"/>
+                                <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,'Failed to invoke Salesforce API.')}"/>
+                            </call-template>
+                            <respond/>
+                        </then>
+                        <else/>
+                    </filter>
+                    <property expression="//sf:expr0" name="soql.var.sfdcdatatime" scope="default" type="STRING" xmlns:sf="urn:sobject.partner.soap.sforce.com"/>
+                    <property name="soql.var.where" scope="default" type="STRING" value=" "/>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' maxdate before minus = ',$ctx:soql.var.sfdcdatatime)" name="msg"/>
+                    </log>
+                    <script language="js"><![CDATA[mc.setProperty("soql.var.sfdcdatatime",org.apache.commons.lang.time.DateFormatUtils.formatUTC(org.joda.time.format.ISODateTimeFormat.dateTime().parseDateTime(mc.getProperty("soql.var.sfdcdatatime").toString()).minusHours(1).getMillis(), "yyyy-MM-dd HH:mm:ss.SSS").toString().replace(" ", "T")+"Z");]]></script>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' maxdate after minus = ',$ctx:soql.var.sfdcdatatime)" name="msg"/>
+                    </log>
+                    <filter regex=".+" source="get-property('query.global.latestdate')">
+                        <then>
+                            <filter regex="0" source="get-property('query.global.latestdate')">
+                                <then>
+                                    <property expression="concat(' where LastModifiedDate &lt; ',$ctx:soql.var.sfdcdatatime )" name="soql.var.where" scope="default" type="STRING"/>
+                                </then>
+                                <else>
+                                    <property expression="concat(' where LastModifiedDate >= ', $ctx:query.global.latestdate,' and LastModifiedDate &lt; ',$ctx:soql.var.sfdcdatatime)" name="soql.var.where" scope="default" type="STRING"/>
+                                </else>
+                            </filter>
+                        </then>
+                        <else>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="203"/>
+                                <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,' latestdate can not be null.')}"/>
+                            </call-template>
+                            <respond/>
+                        </else>
+                    </filter>
+                    <filter regex=".+" source="get-property('soql.var.sqlfilter')">
+                        <then>
+                            <property expression="concat(' and ',$ctx:soql.var.sqlfilter,' ')" name="soql.var.and" scope="default" type="STRING"/>
+                        </then>
+                        <else>
+                            <property name="soql.var.and" scope="default" type="STRING" value=" "/>
+                        </else>
+                    </filter>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix, 'one hour before last sfdc datatime af:',$ctx:soql.var.sfdcdatatime)" name="msg"/>
+                    </log>
+                    <property name="soql.var.orderby" scope="default" type="STRING" value=" order by LastModifiedDate "/>
+                    <property expression="concat($ctx:soql.var.basic, $ctx:soql.var.where,$ctx:soql.var.and,$ctx:soql.var.orderby)" name="soql.var.full" scope="default" type="STRING"/>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' finish create soql.')" name="msg"/>
+                    </log>
+                </then>
+                <else>
+                    <property name="soql.var.full" scope="default" type="STRING" value="null"/>
+                </else>
+            </filter>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' full soql ', $ctx:soql.var.full)" name="msg"/>
+            </log>
+            <call-template target="SFDC_SOAP_EXE_QUERY">
+                <with-param name="proxy.var.proxyLogPrefix" value="{$ctx:proxy.var.proxyLogPrefix}"/>
+                <with-param name="sfdc.var.queryLocator" value="{$ctx:sfdc.var.currentQueryLocator}"/>
+                <with-param name="sfdc.var.sessionId" value="{$ctx:sfdc.var.sessionid}"/>
+                <with-param name="sfdc.var.instanceId" value="{$ctx:sfdc.var.instance_id}"/>
+                <with-param name="sfdc.var.batchSize" value="{$ctx:uri.var.batch_count}"/>
+                <with-param name="sfdc.var.SOQL" value="{$ctx:soql.var.full}"/>
+                <with-param name="sfdc.var.SFDCEndpoint" value="EX_SFDC_SOAP_QUERY"/>
+            </call-template>
+            <filter regex="INVALID_QUERY_LOCATOR" source="//sf:exceptionCode" xmlns:sf="urn:fault.partner.soap.sforce.com">
+                <then>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix, 'set queryLocator=null for INVALID_QUERY_LOCATOR=',//sf:exceptionCode)" name="msg"/>
+                    </log>
+                    <script language="js"><![CDATA[mc.getConfiguration().getRegistry().updateResource(mc.getProperty("queryLocator_address"),"null");]]></script>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <filter regex="true" source="string($axis2:HTTP_SC)!=200" xmlns:result="urn:partner.soap.sforce.com">
+                <then>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                        <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,'Failed to invoke Salesforce API.')}"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <filter regex="true" source="string($axis2:HTTP_SC)!=200" xmlns:result="urn:partner.soap.sforce.com">
+                <then>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                        <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,'Failed to invoke Salesforce API.')}"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <property expression="//dat:queryLocator/text()" name="sfdc.var.newqueryLocator" scope="default" type="STRING" xmlns:dat="urn:partner.soap.sforce.com" xmlns:ns="http://org.apache.synapse/xsd" xmlns:ns2="http://org.apache.synapse/xsd"/>
+            <property expression="//result:done" name="query.var.finish" scope="default" type="STRING" xmlns:result="urn:partner.soap.sforce.com"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, 'query done:',$ctx:query.var.finish,' newqueryLocator:',$ctx:sfdc.var.newqueryLocator)" name="msg"/>
+            </log>
+            <property expression="//result:size" name="data_size" scope="default" type="STRING" xmlns:result="urn:partner.soap.sforce.com"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' Query completed. Total data is ', $ctx:data_size, '.')" name="msg" xmlns:result="urn:partner.soap.sforce.com"/>
+            </log>
+            <filter regex="true" source="$ctx:data_size  &lt;  1">
+                <then>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'no data need to write into HDFS...')" name="msg"/>
+                    </log>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                        <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,'no data need to write into HDFS.')}"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <property expression="//result:records[last()]/sf:LastModifiedDate" name="query.global.latestdate" scope="default" type="STRING" xmlns:result="urn:partner.soap.sforce.com" xmlns:sf="urn:sobject.partner.soap.sforce.com"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' last date is ', $ctx:query.global.latestdate,'.')" name="msg"/>
+            </log>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' Finished invoke Salesforce API. Starting transfrom the payload.')" name="msg"/>
+            </log>
+            <xslt key="gov:/repository/services/SFDC2UDP_OBJECTS_SYNC/modules/insert/transform/gloabl.xslt.xmldata2text">
+                <property expression="$ctx:uri.var.batch_number" name="batch_number"/>
+                <property expression="//result:records[last()]/sf:LastModifiedDate" name="lastmodifieddate" xmlns:result="urn:partner.soap.sforce.com" xmlns:sf="urn:sobject.partner.soap.sforce.com"/>
+                <property expression="$ctx:transfrom.var.batch_no_position" name="batch_number_position"/>
+                <property expression="$ctx:transfrom.var.null_position" name="null_position"/>
+                <property expression="$ctx:transfrom.var.keepLastModifiedDate" name="keepLastModifiedDate"/>
+            </xslt>
+            <property name="messageType" scope="axis2" type="STRING" value="text/plain"/>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,'Start calling hadoop API datanode to write file ', $ctx:uri.var.file_name)" name="msg"/>
+            </log>
+            <call>
+                <endpoint key="EX_LUDP_DATANODE_SFDC_USER"/>
+            </call>
+            <filter regex="true" source="string($axis2:HTTP_SC)!=201">
+                <then>
+                    <log level="custom">
+                        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'Failed to write data into HDFS...')" name="msg"/>
+                    </log>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="203"/>
+                        <with-param name="errormsg" value="{concat($ctx:proxy.var.proxyLogPrefix,'Failed to write data into HDFS...')}"/>
+                    </call-template>
+                    <respond/>
+                </then>
+                <else/>
+            </filter>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' last date is ', $ctx:query.global.latestdate,'.')" name="msg"/>
+            </log>
+            <script language="js"><![CDATA[var latestdate = mc.getProperty("query.global.latestdate");
+         if(latestdate.toString().length()>10){
+          mc.getConfiguration().getRegistry().updateResource(mc.getProperty("timestamp_address"),latestdate.toString());
+         }]]></script>
+            <script language="js"><![CDATA[var queryLocator = mc.getProperty("sfdc.var.newqueryLocator") ;
+           if(!queryLocator||queryLocator==''||queryLocator==null){
+           queryLocator = "null";
+           }
+         mc.getConfiguration().getRegistry().updateResource(mc.getProperty("queryLocator_address"),queryLocator.toString());]]></script>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix, ' Received response from hadoop API. End...')" name="msg"/>
+            </log>
+            <call-template target="TP_COMMON_SUCCESS_HANDLER">
+                <with-param name="successdesc" value="{concat($ctx:proxy.var.proxyLogPrefix, ' Received response from hadoop API. End.  data_size= ',$ctx:data_size)}"/>
+            </call-template>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,' faultSequence')" name="msg"/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>

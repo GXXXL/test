@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="IMAGE_POC" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <payloadFactory media-type="xml">
+                <format>
+                    <bapirfc name="ZPCG_MOBILITY_ATTACHMENT" xmlns="">
+                        <import>
+                            <field name="SO_NUMBER">$1</field>
+                            <field name="FILENAME">$2</field>
+                            <field name="ATTACHMENT">$3</field>
+                            <field name="FILESEQ">$4</field>
+                        </import>
+                    </bapirfc>
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.request.so_number"/>
+                    <arg evaluator="json" expression="$.request.filename"/>
+                    <arg evaluator="json" expression="$.request.attachment"/>
+                    <arg evaluator="json" expression="$.request.fileseq"/>
+                </args>
+            </payloadFactory>
+            <log level="full"/>
+            <send>
+                <endpoint key="EP_SAP_CSQ_RFC"/>
+            </send>
+        </inSequence>
+        <outSequence>
+            <log level="full"/>
+            <respond/>
+        </outSequence>
+        <faultSequence>
+            <log level="custom">
+                <property name="fault" value="Fault detected ......"/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>

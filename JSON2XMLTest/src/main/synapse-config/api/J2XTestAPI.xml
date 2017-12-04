@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/J2XTest" name="J2XTestAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/test">
+        <inSequence>
+            <payloadFactory media-type="xml">
+                <format>
+                    <name_of_the_element xmlns=""/>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$axis2:name"/>
+                    <arg evaluator="xml" expression="$axis2:dob"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+        <faultSequence/>
+    </resource>
+    <resource methods="POST" uri-template="/test2">
+        <inSequence>
+            <property expression="json-eval($.id)" name="getId" scope="default" type="STRING"/>
+            <send>
+                <endpoint key="QSEP"/>
+            </send>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+        <faultSequence/>
+    </resource>
+</api>

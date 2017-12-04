@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><artifacts>
+    <artifact name="J2XTestAPI" groupId="com.example.JSON2XMLTest.api" version="1.0.0" type="synapse/api" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/api/J2XTestAPI.xml</file>
+    </artifact>
+    <artifact name="QSEP" groupId="com.example.JSON2XMLTest.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/QSEP.xml</file>
+    </artifact>
+    <artifact name="PCG_Mobility_Service" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/PCG_Mobility_Service.xml</file>
+    </artifact>
+    <artifact name="IMAGE_POC" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/IMAGE_POC.xml</file>
+    </artifact>
+    <artifact name="eeetemplate" groupId="com.example.JSON2XMLTest.template" version="1.0.0" type="synapse/sequenceTemplate" serverRole="EnterpriseServiceBus">
+        <file>src/main/integration-config/integration-templates/eeetemplate.xml</file>
+    </artifact>
+    <artifact name="ConvertingJSONtoXMLUsingXSLT" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/ConvertingJSONtoXMLUsingXSLT.xml</file>
+    </artifact>
+    <artifact name="ConvertingJSONtoXMLUsingPayloadFctory" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/ConvertingJSONtoXMLUsingPayloadFctory.xml</file>
+    </artifact>
+    <artifact name="SFDC2UDP_OBJECTS_SYNC" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/SFDC2UDP_OBJECTS_SYNC.xml</file>
+    </artifact>
+    <artifact name="TP_COMMON_FAULT_HANDLER" groupId="com.example.JSON2XMLTest.template" version="1.0.0" type="synapse/sequenceTemplate" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/templates/TP_COMMON_FAULT_HANDLER.xml</file>
+    </artifact>
+    <artifact name="JSON2XML" groupId="com.example.JSON2XMLTest.local-entry" version="1.0.0" type="synapse/local-entry" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/local-entries/JSON2XML.xml</file>
+    </artifact>
+    <artifact name="ConvertingJSONtoXMLUsingJS" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/ConvertingJSONtoXMLUsingJS.xml</file>
+    </artifact>
+</artifacts>

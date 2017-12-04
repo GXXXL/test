@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template name="TP_COMMON_FAULT_HANDLER" xmlns="http://ws.apache.org/ns/synapse">
+    <parameter name="statuscode"/>
+    <parameter name="errorcode"/>
+    <parameter name="errormsg"/>
+    <parameter name="keepOriginalStatus"/>
+    <sequence>
+        <log level="custom">
+            <property name="msg" value="TP_COMMON_FAULT_HANDLER: start fault handler ..."/>
+        </log>
+        <log level="full"/>
+        <filter xmlns:ns="http://org.apache.synapse/xsd" xmlns:ns2="http://org.apache.synapse/xsd" xpath="not(boolean($ctx:ERROR_MESSAGE))">
+            <then>
+                <property expression="//faultstring" name="SOAP_ERROR" scope="default" type="STRING"/>
+                <property expression="base64Decode(//a:binary)" name="PROXY_ERROR" scope="default" type="STRING" xmlns:a="http://ws.apache.org/commons/ns/payload"/>
+            </then>
+            <else/>
+        </filter>
+        <switch source="$func:statuscode" xmlns:ns="http://org.apache.synapse/xsd" xmlns:ns2="http://org.apache.synapse/xsd">
+            <case regex="[0-1]{1}[0-9]{2}">
+                <log level="custom">
+                    <property name="msg" value="TP_COMMON_FAULT_HANDLER: error 001-200 ..."/>
+                </log>
+                <payloadFactory media-type="xml">
+                    <format>
+                        <response xmlns="">
+                            <header>
+                                <status>FAILED</status>
+                                <status_code>$1</status_code>
+                                <status_desc>(SERVICE_ERROR) $2 - $3</status_desc>
+                                <msg_id>$4</msg_id>
+                                <req_msg_id>$5</req_msg_id>
+                            </header>
+                        </response>
+                    </format>
+                    <args>
+                        <arg evaluator="xml" expression="$func:statuscode"/>
+                        <arg evaluator="xml" expression="$func:errorcode"/>
+                        <arg evaluator="xml" expression="concat($func:errormsg, '; ', $ctx:ERROR_MESSAGE, $ctx:SOAP_ERROR)"/>
+                        <arg evaluator="xml" expression="get-property('request.var.msgid')"/>
+                        <arg evaluator="xml" expression="get-property('response.var.msgid')"/>
+                    </args>
+                </payloadFactory>
+            </case>
+            <case regex="201">
+                <log level="custom">
+                    <property name="msg" value="TP_COMMON_FAULT_HANDLER: error 201 ..."/>
+                </log>
+                <payloadFactory media-type="xml">
+                    <format>
+                        <response xmlns="">
+                            <header>
+                                <status>FAILED</status>
+                                <status_code>201</status_code>
+                                <status_desc>(PARAM_ERROR) $1 - $2</status_desc>
+                                <msg_id>$3</msg_id>
+                                <req_msg_id>$4</req_msg_id>
+                            </header>
+                        </response>
+                    </format>
+                    <args>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_CODE, $func:errorcode)"/>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_MESSAGE, $ctx:SOAP_ERROR, $func:errormsg)"/>
+                        <arg evaluator="xml" expression="get-property('request.var.msgid')"/>
+                        <arg evaluator="xml" expression="get-property('response.var.msgid')"/>
+                    </args>
+                </payloadFactory>
+            </case>
+            <case regex="202">
+                <log level="custom">
+                    <property name="msg" value="TP_COMMON_FAULT_HANDLER: error 202 ..."/>
+                </log>
+                <payloadFactory media-type="xml">
+                    <format>
+                        <response xmlns="">
+                            <header>
+                                <status>FAILED</status>
+                                <status_code>202</status_code>
+                                <status_desc>(MEDIATE_ERROR) $1 - $2</status_desc>
+                                <msg_id>$3</msg_id>
+                                <req_msg_id>$4</req_msg_id>
+                            </header>
+                        </response>
+                    </format>
+                    <args>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_CODE, $func:errorcode)"/>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_MESSAGE, $ctx:SOAP_ERROR, $func:errormsg)"/>
+                        <arg evaluator="xml" expression="get-property('request.var.msgid')"/>
+                        <arg evaluator="xml" expression="get-property('response.var.msgid')"/>
+                    </args>
+                </payloadFactory>
+            </case>
+            <case regex="203">
+                <log level="custom">
+                    <property name="msg" value="TP_COMMON_FAULT_HANDLER: error 203 ..."/>
+                </log>
+                <payloadFactory media-type="xml">
+                    <format>
+                        <response xmlns="">
+                            <header>
+                                <status>FAILED</status>
+                                <status_code>203</status_code>
+                                <status_desc>(CONNECT_ERROR) $1 - $2</status_desc>
+                                <msg_id>$3</msg_id>
+                                <req_msg_id>$4</req_msg_id>
+                            </header>
+                        </response>
+                    </format>
+                    <args>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_CODE, $func:errorcode)"/>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_MESSAGE, $ctx:SOAP_ERROR, $ctx:PROXY_ERROR, $func:errormsg,base64Decode(//ns:binary))"/>
+                        <arg evaluator="xml" expression="get-property('request.var.msgid')"/>
+                        <arg evaluator="xml" expression="get-property('response.var.msgid')"/>
+                    </args>
+                </payloadFactory>
+            </case>
+            <default>
+                <log level="custom">
+                    <property name="msg" value="TP_COMMON_FAULT_HANDLER: other error ..."/>
+                </log>
+                <payloadFactory media-type="xml">
+                    <format>
+                        <response xmlns="">
+                            <header>
+                                <status>FAILED</status>
+                                <status_code>999</status_code>
+                                <status_desc>(UNKNOWN_ERROR) $1 - $2</status_desc>
+                                <msg_id>$3</msg_id>
+                                <req_msg_id>$4</req_msg_id>
+                            </header>
+                        </response>
+                    </format>
+                    <args>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_CODE, $func:errorcode)"/>
+                        <arg evaluator="xml" expression="concat($ctx:ERROR_MESSAGE, $ctx:SOAP_ERROR, $func:errormsg)"/>
+                        <arg evaluator="xml" expression="get-property('request.var.msgid')"/>
+                        <arg evaluator="xml" expression="get-property('response.var.msgid')"/>
+                    </args>
+                </payloadFactory>
+            </default>
+        </switch>
+        <log level="full"/>
+        <filter regex="false" source="$func:keepOriginalStatus" xmlns:ns="http://org.apache.synapse/xsd" xmlns:ns2="http://org.apache.synapse/xsd">
+            <then>
+                <property name="HTTP_SC" scope="axis2" type="STRING" value="200"/>
+            </then>
+            <else/>
+        </filter>
+        <call-template target="AUDIT_LOG">
+            <with-param name="process_no" value="ERROR"/>
+            <with-param name="status_desc" value="Exception occurred .."/>
+        </call-template>
+        <log level="custom">
+            <property name="msg" value="TP_COMMON_FAULT_HANDLER: end fault handler ..."/>
+        </log>
+    </sequence>
+</template>

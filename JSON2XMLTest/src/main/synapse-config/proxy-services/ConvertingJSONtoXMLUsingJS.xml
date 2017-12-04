@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="ConvertingJSONtoXMLUsingJS" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property expression="json-eval($.name)" name="name"/>
+            </log>
+            <script language="js"><![CDATA[var myrequest_jsons = mc.getPayloadJSON();
+                    var log = mc.getServiceLog();
+                    log.info(myrequest_jsons);
+                    mc.setPayloadXML(
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+	                    <soapenv:Body>
+		                    <person>
+			                    <s_name>{myrequest_jsons.name}</s_name>
+			                    <s_sex>{myrequest_jsons.sex}</s_sex>
+			                    <s_age>{myrequest_jsons.age}</s_age>
+		                    </person>
+	                    </soapenv:Body>
+                    </soapenv:Envelope>
+                    );]]></script>
+            <property name="messageType" scope="axis2" type="STRING" value="text/xml"/>
+            <log level="full"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="full"/>
+        </faultSequence>
+    </target>
+</proxy>

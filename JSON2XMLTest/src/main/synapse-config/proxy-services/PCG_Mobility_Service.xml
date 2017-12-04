@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="PCG_Mobility_Service" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="full">
+                <property name="msg" value="PCG_Mobility_Service: Start ..."/>
+            </log>
+            <sequence key="SQ_COMMON_REQUEST"/>
+            <log level="custom">
+                <property expression="substring-after(get-property('To'),'PCG_Mobility_Service/')" name="API_RESOURCE.var.param1"/>
+            </log>
+            <log level="full"/>
+            <property expression="substring-after(get-property('To'),'PCG_Mobility_Service/')" name="API_RESOURCE.var.param1" scope="default" type="STRING"/>
+            <filter regex="true" source="contains($ctx:API_RESOURCE.var.param1,'/') or contains($ctx:API_RESOURCE.var.param1,'?')">
+                <then>
+                    <log level="custom">
+                        <property expression="substring-before(replace($ctx:API_RESOURCE.var.param1,'\?','/'),'/')" name="API_RESOURCE"/>
+                    </log>
+                    <property expression="substring-before(replace($ctx:API_RESOURCE.var.param1,'\?','/'),'/')" name="API_RESOURCE" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property expression="$ctx:API_RESOURCE.var.param1" name="API_RESOURCE" scope="default" type="STRING"/>
+                </else>
+            </filter>
+            <switch source="get-property('API_RESOURCE')">
+                <case regex="logonSet">
+                    <log level="custom">
+                        <property name="msg" value="PCG_Mobility_Service: LogonSet request mapping start..."/>
+                    </log>
+                    <validate>
+                        <schema key="gov:/repository/services/PCG_Mobility_Service/modules/logonSet/schema/request.json"/>
+                        <on-fail>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="201"/>
+                            </call-template>
+                            <call-template target="TP_COMMON_SET_RESPONSE_HEADER"/>
+                            <respond/>
+                        </on-fail>
+                    </validate>
+                    <property name="tokenURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV"/>
+                    <property name="resourceURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV/LogonSet"/>
+                    <property expression="json-eval($.request.base64Auth)" name="base64Auth" scope="default" type="STRING"/>
+                    <property name="ctPayload" scope="default" type="STRING" value="application/json"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {"d":{"UserName":"$1","Password":"$2"}}
+                       </format>
+                        <args>
+                            <arg evaluator="xml" expression="substring-before(fn:base64Decode($ctx:base64Auth),':')"/>
+                            <arg evaluator="xml" expression="substring-after(fn:base64Decode($ctx:base64Auth),':')"/>
+                        </args>
+                    </payloadFactory>
+                    <log level="full"/>
+                    <property expression="json-eval($.)" name="orgJsPayload" scope="default" type="STRING"/>
+                    <property expression="fn:base64Encode($ctx:orgJsPayload)" name="base64JsPayload" scope="default" type="STRING"/>
+                    <property name="ctPayload" scope="default" type="STRING" value="application/json"/>
+                    <class name="com.lenovo.wso2.mediator.SAPODataMediator"/>
+                    <log level="custom">
+                        <property expression="$ctx:response.var.odata" name="msgs"/>
+                    </log>
+                    <script language="js"><![CDATA[resp_json = {};
+                    resp_json.response = {};
+                    resp_json.response.header = {};
+                    resp_json.response.header.status="SUCCESS";
+                    resp_json.response.header.status_code="001";
+                    resp_json.response.header.status_desc="Successfully received output data from OData";
+                    resp_json.response.header.msg_id=mc.getProperty("request.var.msgid");
+                    resp_json.response.header.req_msg_id=mc.getProperty("request.var.msgid");
+                   
+                    resp_json.response.data = {};
+                    payload = mc.getProperty("response.var.odata");
+                 
+                  odata_json = JSON.parse(payload);
+                    delete odata_json.d.__metadata;
+                   
+                    resp_json.response.data = odata_json.d;
+                    mc.setPayloadJSON(resp_json);]]></script>
+                    <respond/>
+                </case>
+                <case regex="statusChangeSet">
+                    <log level="custom">
+                        <property name="msg" value="PCG_Mobility_Service: StatusChangeSet request mapping start..."/>
+                    </log>
+                    <validate>
+                        <schema key="gov:/repository/services/PCG_Mobility_Service/modules/statusChangeSet/schema/request.json"/>
+                        <on-fail>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="201"/>
+                            </call-template>
+                            <call-template target="TP_COMMON_SET_RESPONSE_HEADER"/>
+                            <respond/>
+                        </on-fail>
+                    </validate>
+                    <property name="tokenURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV"/>
+                    <property name="resourceURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV/StatusChangeSet"/>
+                    <property expression="json-eval($.request.base64Auth)" name="base64Auth" scope="default" type="STRING"/>
+                    <property name="ctPayload" scope="default" type="STRING" value="application/json"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {"d":{"SoId":"$1","EnRouteDate":"$2","OnsiteDate":"$3","FixDate":"$4","TimeZone":"$5"}}
+                       </format>
+                        <args>
+                            <arg evaluator="json" expression="$.request.data.SoId"/>
+                            <arg evaluator="json" expression="$.request.data.EnRouteDate"/>
+                            <arg evaluator="json" expression="$.request.data.OnsiteDate"/>
+                            <arg evaluator="json" expression="$.request.data.FixDate"/>
+                            <arg evaluator="json" expression="$.request.data.TimeZone"/>
+                        </args>
+                    </payloadFactory>
+                    <log level="full"/>
+                    <property expression="json-eval($.)" name="orgJsPayload" scope="default" type="STRING"/>
+                    <property expression="fn:base64Encode($ctx:orgJsPayload)" name="base64JsPayload" scope="default" type="STRING"/>
+                    <property name="ctPayload" scope="default" type="STRING" value="application/json"/>
+                    <class name="com.lenovo.wso2.mediator.SAPODataMediator"/>
+                    <log level="custom">
+                        <property expression="$ctx:response.var.odata" name="msgs"/>
+                    </log>
+                    <script language="js"><![CDATA[resp_json = {};
+                    resp_json.response = {};
+                    resp_json.response.header = {};
+                    resp_json.response.header.status="SUCCESS";
+                    resp_json.response.header.status_code="001";
+                    resp_json.response.header.status_desc="Successfully received output data from OData";
+                    resp_json.response.header.msg_id=mc.getProperty("request.var.msgid");
+                    resp_json.response.header.req_msg_id=mc.getProperty("request.var.msgid");
+                   
+                    resp_json.response.data = {};
+                    payload = mc.getProperty("response.var.odata");
+                 
+                  odata_json = JSON.parse(payload);
+                    delete odata_json.d.__metadata;
+                   
+                    resp_json.response.data = odata_json.d;
+                    mc.setPayloadJSON(resp_json);]]></script>
+                    <respond/>
+                </case>
+                <case regex="soAttachSet">
+                    <log level="custom">
+                        <property name="msg" value="PCG_Mobility_Service: SoAttachSet request mapping start..."/>
+                    </log>
+                    <validate>
+                        <schema key="gov:/repository/services/PCG_Mobility_Service/modules/soAttachSet/schema/request.json"/>
+                        <on-fail>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="201"/>
+                            </call-template>
+                            <call-template target="TP_COMMON_SET_RESPONSE_HEADER"/>
+                            <respond/>
+                        </on-fail>
+                    </validate>
+                    <property name="tokenURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV"/>
+                    <property name="resourceURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV/SoAttachSet"/>
+                    <property expression="json-eval($.request.base64Auth)" name="base64Auth" scope="default" type="STRING"/>
+                    <log level="full"/>
+                    <property expression="json-eval($.request.data.base64Image)" name="orgJsPayload" scope="default" type="STRING"/>
+                    <property expression="fn:base64Encode($ctx:orgJsPayload)" name="base64JsPayload" scope="default" type="STRING"/>
+                    <property expression="json-eval($.request.data.ctPayload)" name="ctPayload" scope="default" type="STRING"/>
+                    <property name="cePayload" scope="default" type="STRING" value="binary"/>
+                    <property expression="json-eval($.request.data.addHeader)" name="addHeader" scope="default" type="STRING"/>
+                    <class name="com.lenovo.wso2.mediator.SAPODataMediator"/>
+                    <log level="custom">
+                        <property expression="$ctx:response.var.odata" name="msgs"/>
+                    </log>
+                    <script language="js"><![CDATA[resp_json = {};
+                    resp_json.response = {};
+                    resp_json.response.header = {};
+                    resp_json.response.header.status="SUCCESS";
+                    resp_json.response.header.status_code="001";
+                    resp_json.response.header.status_desc="Successfully received output data from OData";
+                    resp_json.response.header.msg_id=mc.getProperty("request.var.msgid");
+                    resp_json.response.header.req_msg_id=mc.getProperty("request.var.msgid");
+                   
+                    resp_json.response.data = {};
+                   payload = mc.getProperty("response.var.odata");
+                 
+                  odata_json = JSON.parse(payload);
+                    delete odata_json.d.__metadata;
+                   
+                    resp_json.response.data = odata_json.d;
+                    mc.setPayloadJSON(resp_json);]]></script>
+                    <respond/>
+                </case>
+                <case regex="updatePartItems">
+                    <log level="custom">
+                        <property name="msg" value="PCG_Mobility_Service: updatePartItems request mapping start..."/>
+                    </log>
+                    <validate>
+                        <schema key="gov:/repository/services/PCG_Mobility_Service/modules/updatePartItems/schema/request.json"/>
+                        <on-fail>
+                            <call-template target="TP_COMMON_FAULT_HANDLER">
+                                <with-param name="statuscode" value="201"/>
+                            </call-template>
+                            <call-template target="TP_COMMON_SET_RESPONSE_HEADER"/>
+                            <respond/>
+                        </on-fail>
+                    </validate>
+                    <property name="tokenURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV"/>
+                    <property name="resourceURL" scope="default" type="STRING" value="http://pekax211.lenovo.com:8000/sap/opu/odata/SAP/ZPCG_MOBILITY_SRV/$batch"/>
+                    <property expression="json-eval($.request.base64Auth)" name="base64Auth" scope="default" type="STRING"/>
+                    <log level="full"/>
+                    <script language="js"><![CDATA[var result = "--batch"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "Content-Type: multipart/mixed; boundary=changeset"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                 
+                    payload = mc.getPayloadJSON();
+                    items = payload.request.data;
+                    for (i in items) {
+                    result += "--changeset"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                     result += "Content-Type: application/http"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "Content-Transfer-Encoding: binary"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                   
+                     result = result+"PUT PartItemUpdateSet(SoId='"+items[i].SoId+"',ItemNumber='"+items[i].ItemNumber+"') HTTP/1.1"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "Content-Type: application/json"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "{\"d\":";
+                    result += JSON.stringify(items[i]);
+                    result += "}"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    }
+                    result += "--changeset--"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+ 
+                    result += "--batch"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "Content-Type: application/http"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+                    result += "Content-Transfer-Encoding: binary"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+ 
+                    result += "GET PartItemUpdateSet?$format=json HTTP/1.1"+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a)+String.fromCharCode(0x0d)+String.fromCharCode(0x0a);
+ 
+                    result += "--batch--";
+                   
+                    var log = mc.getServiceLog();       
+                  log.info(result);
+                 
+                  mc.setProperty("orgBatchPayload",result.toString())]]></script>
+                    <log level="custom">
+                        <property expression="$ctx:orgBatchPayload" name="msgs"/>
+                    </log>
+                    <property expression="fn:base64Encode($ctx:orgBatchPayload)" name="base64JsPayload" scope="default" type="STRING"/>
+                    <property name="ctPayload" scope="default" type="STRING" value="multipart/mixed; boundary=batch"/>
+                    <class name="com.lenovo.wso2.mediator.SAPODataMediator"/>
+                    <log level="custom">
+                        <property expression="$ctx:response.var.odata" name="msgs"/>
+                    </log>
+                    <script language="js"><![CDATA[resp_json = {};
+                    resp_json.response = {};
+                    resp_json.response.header = {};
+                    resp_json.response.header.status="SUCCESS";
+                    resp_json.response.header.status_code="001";
+                    resp_json.response.header.status_desc="Successfully received output data from OData";
+                    resp_json.response.header.msg_id=mc.getProperty("request.var.msgid");
+                    resp_json.response.header.req_msg_id=mc.getProperty("request.var.msgid");
+                   
+                    resp_json.response.data = [];
+                   
+                    payload = mc.getProperty("response.var.odata");
+                  odata_json = JSON.parse(payload);
+                   
+                    items = odata_json.d.results;
+                    for(i in items){
+                    delete items[i].__metadata;
+                    resp_json.response.data.push(items[i]);
+                    }
+                   
+                    mc.setPayloadJSON(resp_json);]]></script>
+                    <respond/>
+                </case>
+                <default>
+                    <call-template target="TP_COMMON_FAULT_HANDLER">
+                        <with-param name="statuscode" value="201"/>
+                        <with-param name="errormsg" value="API resource is discorrect"/>
+                    </call-template>
+                    <call-template target="TP_COMMON_SET_RESPONSE_HEADER"/>
+                    <respond/>
+                </default>
+            </switch>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="fault" value="Fault detected ......"/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>
