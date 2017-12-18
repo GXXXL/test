@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="GL_SPARCEL_SHPMNT_FEDEX" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX begin..."/>
+            </log>
+            <log level="full"/>
+            <sequence key="SQ_COMMON_REQUEST"/>
+            <property expression="get-property('SYSTEM_DATE','yyyyMMddHHmmss')" name="request.var.sysdate" scope="default" type="STRING"/>
+            <property expression="//ORDERID/text()" name="request.var.orderid" scope="default" type="STRING"/>
+            <property expression="fn:concat($ctx:request.var.orderid,'.xml')" name="request.var.filename" scope="default" type="STRING"/>
+            <xslt key="gov:/repository/services/GL_SPARCEL_SHPMNT_FEDEX/xslt/SEQ-I-SPARCEL-SHPMNT-FEDEX-Order.xslt"/>
+            <enrich>
+                <source clone="true" property="request.var.sysdate" type="property"/>
+                <target xpath="//transaction-info/created"/>
+            </enrich>
+            <log level="full"/>
+            <property expression="//EC-Input" name="EC-Input" scope="default" type="STRING"/>
+            <property expression="base64Encode($ctx:EC-Input)" name="request.var.inputinfo" scope="default" type="STRING"/>
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://apac.fedex.com/ecsuite/webservices">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <web:process>
+                                <importRequest xmlns="">
+                                    <username>LenovoOperator1</username>
+                                    <password>Lenovo12</password>
+                                    <accountId>Motorola_Wuhan</accountId>
+                                    <stationId>STATION1</stationId>
+                                    <filename>$1</filename>
+                                    <content>$2</content>
+                                    <zipFlag>N</zipFlag>
+                                </importRequest>
+                            </web:process>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('request.var.filename')"/>
+                    <arg evaluator="xml" expression="get-property('request.var.inputinfo')"/>
+                </args>
+            </payloadFactory>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: invoke fedex api..."/>
+            </log>
+            <log level="full"/>
+            <property name="DISABLE_CHUNKING" scope="axis2" type="STRING" value="true"/>
+            <header name="Action" scope="default" value="http://apac.fedex.com/ecsuite/webservices/ECShippingWebService/processRequest"/>
+            <call>
+                <endpoint key="EX_FEDEX_SPARCEL_SHPMNT"/>
+            </call>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: received response from fedex api..."/>
+            </log>
+            <log level="full"/>
+            <filter regex="200" source="$axis2:HTTP_SC">
+                <then>
+                    <log level="custom">
+                        <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: HTTP STATUS - 200"/>
+                    </log>
+                    <property expression="//importResponse/status/text()" name="response.var.status" scope="default" type="STRING"/>
+                    <property expression="//label" name="response.var.label" scope="default" type="STRING"/>
+                    <property expression="//ecOutput" name="response.var.ecOutput" scope="default" type="STRING"/>
+                    <property expression="base64Decode($ctx:response.var.ecOutput)" name="ecOutput" scope="default" type="STRING"/>
+                    <property expression="base64Decode($ctx:response.var.label)" name="mediator.prop.printData" scope="default" type="STRING"/>
+                    <script language="js"><![CDATA[var out = new String(mc.getProperty('ecOutput')).replace("<?xml version=\"1.0\"?>","");
+mc.setPayloadXML(new XML(out));]]></script>
+                    <log level="full"/>
+                    <filter regex="Success" source="$ctx:response.var.status">
+                        <then>
+                            <property expression="//shipment/tracking-no/text()" name="response.var.iv_master" scope="default" type="STRING"/>
+                            <property expression="//shipment/package/tracking-no/text()" name="response.var.iv_track" scope="default" type="STRING"/>
+                            <property expression="//shipment/package/result/code/text()" name="response.var.iv_msgty" scope="default" type="STRING"/>
+                            <property expression="//shipment/package/result/message/text()" name="response.var.iv_msgtext" scope="default" type="STRING"/>
+                        </then>
+                        <else>
+                            <property name="response.var.iv_master" scope="default" type="STRING" value=""/>
+                            <property name="response.var.iv_track" scope="default" type="STRING" value=""/>
+                            <filter xpath="count(//shipment/package/result/code)">
+                                <then>
+                                    <property expression="//shipment/package/result/code/text()" name="response.var.iv_msgty" scope="default" type="STRING"/>
+                                    <property expression="//shipment/package/result/message/text()" name="response.var.iv_msgtext" scope="default" type="STRING"/>
+                                </then>
+                                <else>
+                                    <property expression="//importResponse/code/text()" name="response.var.iv_msgty" scope="default" type="STRING"/>
+                                    <property expression="//importResponse/message/text()" name="response.var.iv_msgtext" scope="default" type="STRING"/>
+                                </else>
+                            </filter>
+                        </else>
+                    </filter>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <bapirfc name="ZGL_SC_HU_FEDEX" xmlns="">
+                                <import>
+                                    <field name="IV_EXIDV">$1</field>
+                                    <field name="IV_TRACK">$2</field>
+                                    <field name="IV_MASTER">$3</field>
+                                    <field name="IV_MSGID">$4</field>
+                                    <field name="IV_MSGTY">$5</field>
+                                    <field name="IV_MSGTEXT">$6</field>
+                                </import>
+                            </bapirfc>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:request.var.orderid"/>
+                            <arg evaluator="xml" expression="$ctx:response.var.iv_track"/>
+                            <arg evaluator="xml" expression="$ctx:response.var.iv_master"/>
+                            <arg evaluator="xml" expression="$ctx:response.var.status"/>
+                            <arg evaluator="xml" expression="$ctx:response.var.iv_msgty"/>
+                            <arg evaluator="xml" expression="$ctx:response.var.iv_msgtext"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <log level="custom">
+                        <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: HTTP SATUS - NOT 200"/>
+                    </log>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <bapirfc name="ZGL_SC_HU_FEDEX" xmlns="">
+                                <import>
+                                    <field name="IV_EXIDV">$1</field>
+                                    <field name="IV_TRACK"/>
+                                    <field name="IV_MASTER"/>
+                                    <field name="IV_MSGID">FAILED</field>
+                                    <field name="IV_MSGTY">203</field>
+                                    <field name="IV_MSGTEXT">(CONNECT_ERROR) HTTP STATUS - $2; Failed to connect Fedex Web Service</field>
+                                </import>
+                            </bapirfc>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:request.var.orderid"/>
+                            <arg evaluator="xml" expression="$axis2:HTTP_SC"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: invoke ECC RFC"/>
+            </log>
+            <log level="full"/>
+            <call>
+                <endpoint key="SAP_ECQ_RFC"/>
+            </call>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: received response from ECC"/>
+            </log>
+            <log level="full"/>
+            <filter regex=".*SUCCESS.*" source="//OUTPUT/EV_RET">
+                <then>
+                    <property expression="//OUTPUT/EV_PRN_IP" name="mediator.prop.printerIP" scope="default" type="STRING"/>
+                    <property expression="//OUTPUT/EV_PRN_PORT" name="mediator.prop.printerPort" scope="default" type="STRING"/>
+                    <log level="custom">
+                        <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: call remote printer..."/>
+                        <property expression="concat($ctx:mediator.prop.printerIP, '(', $ctx:mediator.prop.printerPort , ')')" name="msg"/>
+                    </log>
+                    <class name="com.lenovo.wso2.mediators.PrintMediator">
+                        <property name="encoding" value="UTF-8"/>
+                        <property name="timeout" value="10"/>
+                    </class>
+                </then>
+                <else>
+                    <log level="custom">
+                        <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX: received error status from ECC"/>
+                    </log>
+                    <log level="full"/>
+                </else>
+            </filter>
+            <log level="custom">
+                <property name="msg" value="GL_SPARCEL_SHPMNT_FEDEX end"/>
+            </log>
+            <call-template target="TP_COMMON_SUCCESS_HANDLER">
+                <with-param name="successdesc" value="Successfully completed process"/>
+                <with-param name="savepayload" value="false"/>
+            </call-template>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="custom">
+                <property name="msg" value="faultSequence..."/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <payloadFactory media-type="xml">
+                <format>
+                    <bapirfc name="ZGL_SC_HU_FEDEX" xmlns="">
+                        <import>
+                            <field name="IV_EXIDV"/>
+                            <field name="IV_TRACK"/>
+                            <field name="IV_MASTER"/>
+                            <field name="IV_MSGID">FAILED</field>
+                            <field name="IV_MSGTY">203</field>
+                            <field name="IV_MSGTEXT">(CONNECT_ERROR)$1</field>
+                        </import>
+                    </bapirfc>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:ERROR_MESSAGE"/>
+                </args>
+            </payloadFactory>
+            <call>
+                <endpoint key="SAP_ECQ_RFC"/>
+            </call>
+            <respond/>
+        </faultSequence>
+    </target>
+</proxy>

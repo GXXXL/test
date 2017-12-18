@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<proxy name="ConvertingXML2JSONUsingJS" startOnLoad="true" transports="http https" xmlns="http://ws.apache.org/ns/synapse">
+    <target>
+        <inSequence>
+            <log level="custom">
+                <property expression="//person/name" name="name"/>
+            </log>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                    	"person":{
+                    			"name":"$1",
+                    			"sex":"$2",
+                    			"age":"$3"
+                    	}
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="//person/name"/>
+                    <arg evaluator="xml" expression="//person/sex"/>
+                    <arg evaluator="xml" expression="//person/age"/>
+                </args>
+            </payloadFactory>
+            <log level="full"/>
+            <respond/>
+        </inSequence>
+        <outSequence/>
+        <faultSequence>
+            <log level="full"/>
+        </faultSequence>
+    </target>
+</proxy>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="DCG_BC_SO" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="proxy.var.proxyLogPrefix" scope="default" type="STRING" value="DCG_BC_SO: "/>
+    <log level="custom">
+        <property name="msg" value="DCG_BC_SO: START ..."/>
+    </log>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,' START mapping ... ')" name="msg"/>
+    </log>
+    <xslt key="gov:/repository/services/ZSD_DCGBC_PUTSO.xslt"/>
+    <script language="js"><![CDATA[mc.setProperty('bcso.var.payload',mc.getPayloadXML().toString());]]></script>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,' END mapping ... ')" name="msg"/>
+    </log>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,' START login ... ')" name="msg"/>
+    </log>
+    <script language="js"><![CDATA[var loginInfo = "username=username&password=pass&orgName=org";
+	    mc.setProperty('bcso.var.login',loginInfo);]]></script>
+    <payloadFactory media-type="xml">
+        <format>
+            <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+                <soapenv:Body>$1</soapenv:Body>
+            </soapenv:Envelope>
+        </format>
+        <args>
+            <arg evaluator="xml" expression="base64Encode($ctx:bcso.var.login)"/>
+        </args>
+    </payloadFactory>
+    <property name="Content-Type" scope="transport" type="STRING" value="application/x-www-form-urlencoded"/>
+    <call>
+        <endpoint key="DCG_BC_SO_LOGIN"/>
+    </call>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,' END login ... ')" name="msg"/>
+    </log>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'START get Token ...')" name="msg"/>
+    </log>
+    <property expression="$trp:Token" name="login.var.Token_num" scope="default" type="STRING"/>
+    <log level="custom">
+        <property expression="concat('DCG_BC_SO: login.var.Token_num = ',$ctx:login.var.Token_num)" name="msg"/>
+    </log>
+    <filter regex="true" source="$ctx:login.var.Token_num = ''">
+        <then>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,'login.var.Token_num is empty.')" name="msg"/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <respond/>
+        </then>
+        <else/>
+    </filter>
+    <log level="custom">
+        <property expression="concat($ctx:proxy.var.proxyLogPrefix,'START Invoke SO_UPLOAD API ...')" name="msg"/>
+    </log>
+    <property name="Content-Type" scope="transport" type="STRING" value="application/json"/>
+    <property expression="concat('Bearer ',$ctx:login.var.Token_num)" name="authorization" scope="transport" type="STRING"/>
+    <script language="js"><![CDATA[mc.setPayloadXML(mc.getProperty('bcso.var.payload'));]]></script>
+    <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+    <call>
+        <endpoint key="DCG_BC_SO_Invoke_API"/>
+    </call>
+    <log level="full"/>
+    <filter regex="false" source="json-eval($.success)">
+        <then>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,'Invoke SO_UPLOAD API FAILED')" name="msg"/>
+            </log>
+            <call-template target="TP_COMMON_FAULT_HANDLER">
+                <with-param name="statuscode" value="203"/>
+            </call-template>
+            <respond/>
+        </then>
+        <else>
+            <log level="custom">
+                <property expression="concat($ctx:proxy.var.proxyLogPrefix,' INVOKE SO_UPLOAD API SUCCESS...')" name="msg"/>
+            </log>
+        </else>
+    </filter>
+</sequence>

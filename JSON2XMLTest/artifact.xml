@@ -32,4 +32,22 @@
     <artifact name="ConvertingJSONtoXMLUsingJS" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
         <file>src/main/synapse-config/proxy-services/ConvertingJSONtoXMLUsingJS.xml</file>
     </artifact>
+    <artifact name="ConvertingXML2JSONUsingJS" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/ConvertingXML2JSONUsingJS.xml</file>
+    </artifact>
+    <artifact name="GL_SPARCEL_SHPMNT_FEDEX" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/GL_SPARCEL_SHPMNT_FEDEX.xml</file>
+    </artifact>
+    <artifact name="ECC2Klarna_Billing" groupId="com.example.JSON2XMLTest.proxy-service" version="1.0.0" type="synapse/proxy-service" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/proxy-services/ECC2Klarna_Billing.xml</file>
+    </artifact>
+    <artifact name="DCG_BC_SO" groupId="com.example.JSON2XMLTest.sequence" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/sequences/DCG_BC_SO.xml</file>
+    </artifact>
+    <artifact name="DCG_BC_SO_LOGIN" groupId="com.example.JSON2XMLTest.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/DCG_BC_SO_LOGIN.xml</file>
+    </artifact>
+    <artifact name="DCG_BC_SO_Invoke_API" groupId="com.example.JSON2XMLTest.endpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseServiceBus">
+        <file>src/main/synapse-config/endpoints/DCG_BC_SO_Invoke_API.xml</file>
+    </artifact>
 </artifacts>
